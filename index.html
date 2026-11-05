@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101d3a">
+<title>فروشگاه حسینی | استعلام قیمت</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
+
+<style>
+:root {
+  color-scheme: light;
+  --navy: #101d3a;
+  --navy-2: #192c52;
+  --blue: #2864d7;
+  --blue-light: #eaf1ff;
+  --ink: #18243a;
+  --muted: #718096;
+  --line: #e4eaf2;
+  --surface: #ffffff;
+  --page: #f3f6fb;
+  --green: #087f5b;
+  --red: #c0394b;
+  --shadow: 0 16px 42px rgba(16, 29, 58, .09);
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; background: var(--page); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 22px 16px calc(28px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 85% 0%, rgba(40,100,215,.10), transparent 28rem),
+    var(--page);
+  color: var(--ink);
+  font-family: Tahoma, Arial, sans-serif;
+  direction: rtl;
+}
+button, input { font: inherit; }
+.page { width: min(100%, 760px); margin: 0 auto; }
+.store-header {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 25px 25px;
+  border-radius: 23px;
+  color: #fff;
+  background: linear-gradient(125deg, #0e1b36 0%, #1b376b 68%, #2458ad 100%);
+  box-shadow: 0 18px 38px rgba(16,29,58,.20);
+}
+.store-header::after {
+  content: "";
+  position: absolute;
+  left: -55px; bottom: -105px;
+  width: 230px; height: 230px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 25px rgba(255,255,255,.035), 0 0 0 52px rgba(255,255,255,.025);
+}
+.brand-mark {
+  flex: 0 0 62px;
+  width: 62px; height: 62px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 19px;
+  background: rgba(255,255,255,.12);
+}
+.brand-mark svg { width: 34px; height: 34px; }
+.brand-copy { position: relative; z-index: 1; }
+.brand-copy h1 { margin: 0 0 8px; font-size: clamp(23px, 5vw, 30px); font-weight: 800; letter-spacing: -.5px; }
+.brand-copy p { margin: 0; color: #dbe7ff; font-size: 14px; line-height: 1.8; }
+.category-strip {
+  display: flex; justify-content: center; align-items: center; flex-wrap: wrap;
+  gap: 9px; padding: 15px 4px 19px;
+}
+.category-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 10px; border: 1px solid #e4eaf4; border-radius: 999px;
+  color: #53627b; background: rgba(255,255,255,.78); font-size: 11px;
+}
+.category-chip svg { width: 15px; height: 15px; color: var(--blue); }
+.main-card {
+  padding: clamp(18px, 4vw, 29px);
+  border: 1px solid rgba(225,232,242,.9);
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.section-heading { display:flex; align-items:center; gap:11px; margin-bottom:20px; }
+.heading-icon {
+  width: 42px; height: 42px; display:grid; place-items:center;
+  border-radius: 13px; color:var(--blue); background:var(--blue-light);
+}
+.heading-icon svg { width:22px; height:22px; }
+.section-heading h2 { margin:0; font-size:19px; color:var(--navy); }
+.section-heading p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+.upload-label, .action-button {
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  width:100%; min-height:52px; padding:13px 16px;
+  border:0; border-radius:14px; cursor:pointer;
+  font-weight:700; font-size:15px; text-align:center;
+  transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.upload-label { color:#fff; background:linear-gradient(110deg, #2864d7, #397eea); box-shadow:0 8px 18px rgba(40,100,215,.19); }
+.upload-label svg, .action-button svg { width:20px; height:20px; }
+.upload-label:active, .action-button:active { transform:scale(.985); }
+#fileInput { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.file-note { margin:9px 2px 19px; color:var(--muted); font-size:11px; line-height:1.8; }
+.search-label { display:block; margin:0 0 9px; color:#33435f; font-size:13px; font-weight:700; }
+.search-wrap { position:relative; }
+.search-wrap svg {
+  position:absolute; right:15px; top:50%; transform:translateY(-50%);
+  width:20px; height:20px; color:#8291a9; pointer-events:none;
+}
+#searchInput {
+  display:block; width:100%; min-height:54px; padding:13px 46px 13px 14px;
+  border:1.5px solid #dce4ef; border-radius:14px; outline:none;
+  background:#fbfcfe; color:var(--ink); font-size:16px; direction:rtl;
+  transition:border-color .2s, box-shadow .2s;
+}
+#searchInput:focus { border-color:var(--blue); box-shadow:0 0 0 4px rgba(40,100,215,.10); background:#fff; }
+#searchInput::placeholder { color:#a1adbd; }
+.scan-actions { display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:13px; }
+.action-button { min-height:49px; }
+#scanButton { color:#fff; background:var(--navy-2); }
+#stopButton { display:none; min-width:112px; color:#fff; background:var(--red); }
+#scannerBox {
+  display:none; margin-top:15px; padding:12px;
+  border:1px solid #dce5f3; border-radius:17px; background:#f6f8fc;
+}
+.camera-frame {
+  overflow:hidden; position:relative; width:100%; max-width:100%;
+  border-radius:12px; background:#0b1220; aspect-ratio:16/10;
+}
+#scannerVideo {
+  display:block; width:100%; height:100%; max-height:340px;
+  object-fit:cover; background:#0b1220;
+}
+.camera-guide {
+  position:absolute; pointer-events:none; inset:23% 9%;
+  border:2px solid rgba(112,190,255,.92); border-radius:12px;
+  box-shadow:0 0 0 999px rgba(0,0,0,.12);
+}
+.camera-guide::before, .camera-guide::after {
+  content:""; position:absolute; left:10%; right:10%; top:50%;
+  height:1px; background:rgba(112,190,255,.6);
+}
+#scanStatus { margin:10px 2px 1px; color:#52627b; font-size:12px; line-height:1.8; text-align:center; overflow-wrap:anywhere; }
+#results { margin-top:19px; }
+.result-placeholder, .notice {
+  padding:16px; border:1px dashed #dce4ef; border-radius:14px;
+  color:#77859a; background:#fafbfd; text-align:center; font-size:13px; line-height:1.9;
+}
+.item {
+  margin-top:11px; padding:17px 18px;
+  border:1px solid #e5ebf3; border-right:4px solid var(--blue);
+  border-radius:15px; background:#fff;
+  box-shadow:0 5px 15px rgba(25,44,82,.045);
+}
+.code { color:#718096; font-size:12px; direction:rtl; }
+.title { margin:8px 0 12px; color:#24334e; font-size:15px; font-weight:700; line-height:1.9; }
+.price {
+  display:flex; align-items:baseline; flex-wrap:wrap; gap:7px;
+  color:var(--green); font-size:clamp(23px, 5vw, 28px);
+  font-weight:900; line-height:1.5; font-variant-numeric:tabular-nums;
+}
+.price small { color:#728197; font-size:12px; font-weight:500; }
+.notice { border-style:solid; border-color:#cfe9df; color:#087f5b; background:#f1fbf7; }
+.notice.error { border-color:#f1d6da; color:#b42336; background:#fff7f7; }
+.footer-note { margin:17px 5px 0; color:#98a3b3; font-size:11px; line-height:1.9; text-align:center; }
+@media (max-width:520px) {
+  body { padding:12px 11px calc(20px + env(safe-area-inset-bottom)); }
+  .store-header { gap:13px; padding:20px 17px; border-radius:19px; }
+  .brand-mark { flex-basis:53px; width:53px; height:53px; border-radius:16px; }
+  .brand-mark svg { width:29px; height:29px; }
+  .brand-copy p { font-size:12px; }
+  .category-strip { gap:6px; padding:12px 0 15px; }
+  .category-chip { padding:6px 8px; font-size:10px; }
+  .main-card { padding:17px 14px; border-radius:18px; }
+  .scan-actions { grid-template-columns:1fr; }
+  #stopButton { width:100%; }
+  .item { padding:15px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after { transition:none !important; scroll-behavior:auto !important; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="store-header">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10 5h4M11 18.5h2"/>
+        <path d="M4 8.5v7M2 10.5v3M20 8.5v7M22 10.5v3"/>
+      </svg>
+    </div>
+    <div class="brand-copy">
+      <h1>فروشگاه حسینی</h1>
+      <p>مرکز پخش لوازم جانبی موبایل</p>
+    </div>
+  </header>
+
+  <div class="category-strip" aria-label="دسته‌بندی محصولات">
+    <span class="category-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="12" width="4" height="8" rx="2"/><rect x="17" y="12" width="4" height="8" rx="2"/></svg>هدفون</span>
+    <span class="category-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v5a4 4 0 0 0 8 0V3M12 12v4a4 4 0 0 0 4 4h1"/><path d="M6 3h4M14 3h4M17 17h3v3"/></svg>کابل شارژ</span>
+    <span class="category-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 3V1M14 3V1M10 17h4"/></svg>شارژر</span>
+    <span class="category-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="17" height="11" rx="2"/><path d="M20 10h2v5h-2M9 10l-2 3h3l-1 2 4-4h-3l1-1"/></svg>پاوربانک</span>
+    <span class="category-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9 5h6M10 18h4"/></svg>قاب موبایل</span>
+    <span class="category-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="m8 8 2 2 5-5"/></svg>گلس</span>
+  </div>
+
+  <section class="main-card" aria-labelledby="pageTitle">
+    <div class="section-heading">
+      <div class="heading-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M8 10.8h5.6M10.8 8v5.6"/></svg>
+      </div>
+      <div><h2 id="pageTitle">استعلام قیمت کالا</h2><p>جست‌وجوی سریع بر اساس نام یا کد محصول</p></div>
+    </div>
+
+    <label class="upload-label" for="fileInput">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m-5 5 5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+      بارگذاری و به‌روزرسانی فایل Excel
+    </label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <p class="file-note" id="fileStatus">فایل قیمت‌ها را از حافظه دستگاه انتخاب کنید (Excel: XLSX یا XLS).</p>
+
+    <label class="search-label" for="searchInput">جست‌وجوی محصول</label>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+      <input type="text" id="searchInput" placeholder="کد کالا یا نام محصول را وارد کنید..." autocomplete="off" inputmode="search">
+    </div>
+
+    <div class="scan-actions">
+      <button id="scanButton" class="action-button" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M4 12h16M8 9v6M11 9v6M15 9v6"/></svg>
+        شروع اسکن بارکد
+      </button>
+      <button id="stopButton" class="action-button" type="button">توقف اسکن</button>
+    </div>
+
+    <div id="scannerBox">
+      <div class="camera-frame">
+        <video id="scannerVideo" playsinline muted></video>
+        <div class="camera-guide" aria-hidden="true"></div>
+      </div>
+      <div id="scanStatus" role="status" aria-live="polite">دوربین را روبه‌روی بارکد بگیرید.</div>
+    </div>
+
+    <div id="results" aria-live="polite">
+      <div class="result-placeholder">ابتدا فایل اکسل قیمت‌ها را بارگذاری کنید، سپس نام یا کد کالا را جست‌وجو کنید.</div>
+    </div>
+  </section>
+  <p class="footer-note">برای استفاده از دوربین، صفحه را در مرورگر و از طریق HTTPS یا localhost باز کنید.</p>
+</main>
+
+<script>
+"use strict";
+
+let index = [];
+let timer = null;
+let scannerControls = null;
+let scanLocked = false;
+
+function showNotice(message, isError = false) {
+  const results = document.getElementById("results");
+  results.replaceChildren();
+  const notice = document.createElement("div");
+  notice.className = "notice" + (isError ? " error" : "");
+  notice.textContent = message;
+  results.appendChild(notice);
+}
+
+function buildIndex(rows) {
+  index = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (!rows[i] || rows[i][0] === undefined || rows[i][0] === null || String(rows[i][0]) === "") continue;
+    index.push({
+      code: String(rows[i][0]),
+      title: String(rows[i][1] || ""),
+      price: rows[i][2],
+      key: (String(rows[i][0]) + " " + String(rows[i][1] || "")).toLowerCase()
+    });
+  }
+  showNotice("لیست قیمت با موفقیت به‌روزرسانی شد. تعداد کالاها: " + index.length.toLocaleString("fa-IR"));
+}
+
+document.getElementById("fileInput").addEventListener("change", event => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (!window.XLSX) {
+    showNotice("کتابخانه خواندن Excel بارگذاری نشده است. اتصال اینترنت را بررسی کنید.", true);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = loadEvent => {
+    try {
+      const workbook = XLSX.read(new Uint8Array(loadEvent.target.result), { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!sheet) throw new Error("صفحه‌ای در فایل اکسل پیدا نشد.");
+      buildIndex(XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }));
+      document.getElementById("fileStatus").textContent = "فایل انتخاب‌شده: " + file.name;
+    } catch (error) {
+      showNotice("خواندن فایل اکسل ناموفق بود: " + (error.message || "فایل نامعتبر است."), true);
+    }
+  };
+  reader.onerror = () => showNotice("امکان خواندن فایل انتخاب‌شده وجود ندارد.", true);
+  reader.readAsArrayBuffer(file);
+});
+
+function searchProducts(query) {
+  const q = String(query || "").trim().toLowerCase();
+  const results = document.getElementById("results");
+  results.replaceChildren();
+  if (!q) {
+    if (index.length) {
+      const placeholder = document.createElement("div");
+      placeholder.className = "result-placeholder";
+      placeholder.textContent = "برای مشاهده قیمت، نام یا کد کالا را جست‌وجو کنید.";
+      results.appendChild(placeholder);
+    }
+    return;
+  }
+  if (!index.length) {
+    showNotice("ابتدا فایل اکسل قیمت‌ها را بارگذاری کنید.", true);
+    return;
+  }
+
+  // تطبیق دقیق کد کالا اولویت دارد؛ متن بارکد بدون تبدیل عددی نگه داشته می‌شود.
+  const exact = index.filter(product => String(product.code).trim().toLowerCase() === q);
+  const matches = exact.length ? exact : index.filter(product => product.key.includes(q)).slice(0, 50);
+
+  if (!matches.length) {
+    const empty = document.createElement("div");
+    empty.className = "notice error";
+    empty.textContent = "کالایی با این بارکد یا عبارت پیدا نشد.";
+    results.appendChild(empty);
+    return;
+  }
+
+  matches.forEach(product => {
+    const item = document.createElement("article");
+    item.className = "item";
+
+    const code = document.createElement("div");
+    code.className = "code";
+    code.textContent = "کد کالا: " + product.code;
+
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = product.title;
+
+    const price = document.createElement("div");
+    price.className = "price";
+    const numericPrice = Number(String(product.price ?? "").replace(/[٬,\s]/g, ""));
+    const formattedPrice = String(product.price ?? "").trim() !== "" && Number.isFinite(numericPrice)
+      ? numericPrice.toLocaleString("fa-IR")
+      : String(product.price ?? "");
+    price.append(document.createTextNode(formattedPrice + " "));
+    const unit = document.createElement("small");
+    unit.textContent = "ریال";
+    price.appendChild(unit);
+
+    item.append(code, title, price);
+    results.appendChild(item);
+  });
+}
+
+document.getElementById("searchInput").addEventListener("input", function () {
+  clearTimeout(timer);
+  const value = this.value;
+  timer = setTimeout(() => searchProducts(value), 180);
+});
+
+function createScannerReader() {
+  const ZX = window.ZXingBrowser;
+  const Hint = ZX.DecodeHintType || (ZX.ZXing && ZX.ZXing.DecodeHintType);
+  const Format = ZX.BarcodeFormat || (ZX.ZXing && ZX.ZXing.BarcodeFormat);
+  const hints = new Map();
+
+  if (Hint && Format) {
+    const formats = [
+      "CODE_128", "CODE_39", "CODE_93",
+      "EAN_13", "EAN_8", "UPC_A", "UPC_E",
+      "ITF", "CODABAR", "QR_CODE", "DATA_MATRIX",
+      "PDF_417", "AZTEC"
+    ].map(name => Format[name]).filter(value => value !== undefined);
+
+    if (formats.length) hints.set(Hint.POSSIBLE_FORMATS, formats);
+    if (Hint.TRY_HARDER !== undefined) hints.set(Hint.TRY_HARDER, true);
+    if (Hint.ALSO_INVERTED !== undefined) hints.set(Hint.ALSO_INVERTED, true);
+    if (Hint.CHARACTER_SET !== undefined) hints.set(Hint.CHARACTER_SET, "ISO-8859-1");
+  }
+
+  return new ZX.BrowserMultiFormatReader(hints);
+}
+
+async function startScanner() {
+  const video = document.getElementById("scannerVideo");
+  const box = document.getElementById("scannerBox");
+  const startButton = document.getElementById("scanButton");
+  const stopButton = document.getElementById("stopButton");
+  const status = document.getElementById("scanStatus");
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    box.style.display = "block";
+    status.textContent = "مرورگر امکان دسترسی به دوربین را نمی‌دهد. صفحه را با HTTPS یا localhost باز کنید.";
+    return;
+  }
+  if (!window.ZXingBrowser || !window.ZXingBrowser.BrowserMultiFormatReader) {
+    box.style.display = "block";
+    status.textContent = "کتابخانه اسکن بارکد بارگذاری نشد؛ اتصال اینترنت را بررسی کنید.";
+    return;
+  }
+
+  box.style.display = "block";
+  status.textContent = "در حال فعال‌سازی دوربین...";
+  scanLocked = false;
+  startButton.style.display = "none";
+  stopButton.style.display = "block";
+
+  try {
+    const reader = createScannerReader();
+    scannerControls = await reader.decodeFromConstraints({
+      audio: false,
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30, max: 60 }
+      }
+    }, video, (result, error) => {
+      if (result && !scanLocked) {
+        scanLocked = true;
+        const code = result.getText();
+        const input = document.getElementById("searchInput");
+        input.value = code;
+        searchProducts(code);
+        status.textContent = "بارکد خوانده شد: " + code;
+        stopScanner(true);
+      } else if (error && !(error.name === "NotFoundException" || error.name === "ChecksumException" || error.name === "FormatException")) {
+        // خطاهای عادیِ پیدا نشدن بارکد در هر فریم نادیده گرفته می‌شوند.
+      }
+    });
+
+    const stream = video.srcObject;
+    const track = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+    if (track && track.applyConstraints) {
+      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+      const advanced = [];
+      if (capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
+        advanced.push({ focusMode: "continuous" });
+      }
+      if (capabilities.zoom && capabilities.zoom.max > capabilities.zoom.min) {
+        advanced.push({ zoom: Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 1.5)) });
+      }
+      if (advanced.length) {
+        try { await track.applyConstraints({ advanced }); } catch (_) {}
+      }
+    }
+    if (!scanLocked) status.textContent = "دوربین فعال است؛ بارکد را صاف و داخل کادر نگه دارید.";
+  } catch (error) {
+    stopScanner(false);
+    status.textContent = "دسترسی به دوربین ممکن نشد. اجازه Camera را بدهید و صفحه را با HTTPS باز کنید.";
+    startButton.style.display = "block";
+    stopButton.style.display = "none";
+  }
+}
+
+function stopScanner(hidePreview = true) {
+  scanLocked = true;
+  if (scannerControls) {
+    try { scannerControls.stop(); } catch (_) {}
+    scannerControls = null;
+  }
+  const video = document.getElementById("scannerVideo");
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  }
+  document.getElementById("scanButton").style.display = "flex";
+  document.getElementById("stopButton").style.display = "none";
+  if (hidePreview) document.getElementById("scannerBox").style.display = "none";
+}
+
+document.getElementById("scanButton").addEventListener("click", startScanner);
+document.getElementById("stopButton").addEventListener("click", () => stopScanner(true));
+window.addEventListener("pagehide", () => stopScanner(true));
+</script>
+</body>
+</html>
